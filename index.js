@@ -1,22 +1,33 @@
 #!/usr/bin/env node
 
-var chalk = require('chalk');
-var btSerial = new (require('bluetooth-serial-port')).BluetoothSerialPort();
-var ora = require('ora');
-var spinner;
+(function(global) {
+  'use strict';
+  var chalk = require('chalk');
+  var btSerial = new (require('bluetooth-serial-port')).BluetoothSerialPort();
+  var ora = require('ora');
+  var spinner;
+  var program = require('commander');
+  var version = require('./package.json').version;
 
-btSerial.on('found', function(address, name) {
-    spinner.stop();
-    console.log('\t- Found device: ' + chalk.green(address) + ' (' + chalk.blue(name) + ')');
-/*    btSerial.findSerialPortChannel(address, function(channel) {
-        console.log('\t\t> channel: ' + chalk.red(channel));
-        // close the connection when you're ready
-        btSerial.close();
-    }, function() {
-        console.log('\t\t ... found nothing for this device');
-    });*/
-});
+  program
+    .version(version, '-v, --version')
+    .description('Scans bluetooth devices')
+    .option('-n, --name [device]', '[optional] If device name is known, only output MAC address')
+    .parse(process.argv);
 
-console.log(chalk.bold('\nStart bluetooth scanning\n'));
-spinner = ora('Inquire bluetooth devices').start();
-btSerial.inquire();
+  btSerial.on('found', function(address, name) {
+    if((typeof program.name === 'string') && (program.name === name)) {
+      console.log(address);
+    } else if(typeof program.name !== 'string') {
+      spinner.stop();
+      console.log('\t- Found device: ' + chalk.green(address) + ' (' + chalk.blue(name) + ')');
+    }
+  });
+
+  if(typeof program.name !== 'string') {
+    console.log(chalk.bold('\nStart bluetooth scanning (v' + version + ') \n'));
+    spinner = ora('Inquire bluetooth devices').start();
+  }
+  btSerial.inquire();
+
+})(this);
